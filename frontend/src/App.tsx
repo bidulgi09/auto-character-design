@@ -44,6 +44,7 @@ function App() {
   const [isConfigLoading, setIsConfigLoading] = useState(false)
   const [isImageLoading, setIsImageLoading] = useState(false)
   const [error, setError] = useState('')
+  const [configEditor, setConfigEditor] = useState('')
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY)
@@ -66,6 +67,14 @@ function App() {
     document.documentElement.classList.toggle('dark', isDark)
     localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light')
   }, [isDark])
+
+  useEffect(() => {
+    if (!characterConfig) {
+      setConfigEditor('')
+      return
+    }
+    setConfigEditor(JSON.stringify(characterConfig, null, 2))
+  }, [characterConfig])
 
   const configText = useMemo(() => {
     if (!characterConfig) return ''
@@ -209,6 +218,21 @@ function App() {
     a.href = imageUrl
     a.download = `${characterConfig?.name || 'character'}-image.png`
     a.click()
+  }
+
+  const applyConfigEdit = () => {
+    if (!configEditor.trim()) return
+    try {
+      const parsed = JSON.parse(configEditor) as CharacterConfig
+      if (!parsed?.appearance || !Array.isArray(parsed?.colorPalette)) {
+        throw new Error('invalid character config')
+      }
+      // 한국어 주석: 사용자가 수정한 설정을 즉시 반영해 다시 이미지를 생성할 수 있게 한다.
+      setCharacterConfig(parsed)
+      setError('')
+    } catch {
+      setError('설정 JSON 형식이 올바르지 않습니다.')
+    }
   }
 
   return (
@@ -466,6 +490,14 @@ function App() {
                 <pre className="max-h-[380px] overflow-auto whitespace-pre-wrap rounded-md bg-[#F6F8FA] p-3 text-sm leading-6 dark:bg-[#161B22]">
                   {configText}
                 </pre>
+                <label className="mt-3 block text-sm">
+                  설정 JSON 수정
+                  <textarea
+                    value={configEditor}
+                    onChange={(e) => setConfigEditor(e.target.value)}
+                    className="mt-1 min-h-[180px] w-full rounded-md border border-[#D0D7DE] bg-white px-3 py-2 font-mono text-xs focus:border-[#0969DA] focus:outline-none focus:ring-2 focus:ring-[#0969DA]/30 dark:border-[#30363D] dark:bg-[#0D1117]"
+                  />
+                </label>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -480,6 +512,13 @@ function App() {
                     className="inline-flex items-center gap-1 rounded-md border border-[#D0D7DE] px-3 py-1.5 text-sm dark:border-[#30363D]"
                   >
                     <FileJson size={15} /> JSON 내보내기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyConfigEdit}
+                    className="inline-flex items-center gap-1 rounded-md border border-[#0969DA] bg-[#0969DA] px-3 py-1.5 text-sm text-white"
+                  >
+                    <RefreshCcw size={15} /> 설정 반영
                   </button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
