@@ -31,10 +31,12 @@ export async function generateCharacterFromInput(input: {
   text: string
   genre: Genre
   imageFile: File | null
+  includeProfileInfo: boolean
 }) {
   const formData = new FormData()
   formData.append('text', input.text)
   formData.append('genre', input.genre)
+  formData.append('includeProfileInfo', String(input.includeProfileInfo))
   if (input.imageFile) {
     formData.append('image', input.imageFile)
   }

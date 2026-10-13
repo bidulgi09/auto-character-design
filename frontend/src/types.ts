@@ -3,7 +3,7 @@ export type ImageStyle = '애니풍' | '수채화' | '픽셀아트' | '반실사
 
 export interface CharacterConfig {
   name: string
-  age: number
+  age: number | null
   gender: string
   race: string
   role: string
@@ -34,4 +34,5 @@ export interface RandomRequest {
   genre: Genre
   currentConfig?: CharacterConfig | null
   lockedFields: Record<string, boolean>
+  includeProfileInfo: boolean
 }

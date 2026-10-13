@@ -32,6 +32,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('random')
   const [genre, setGenre] = useState<Genre>('랜덤')
   const [style, setStyle] = useState<ImageStyle>('애니풍')
+  const [includeProfileInfo, setIncludeProfileInfo] = useState(false)
   const [locks, setLocks] = useState<Record<string, boolean>>(emptyLocks)
   const [characterConfig, setCharacterConfig] = useState<CharacterConfig | null>(null)
   const [imageUrl, setImageUrl] = useState('')
@@ -68,19 +69,22 @@ function App() {
 
   const configText = useMemo(() => {
     if (!characterConfig) return ''
-    return [
-      `이름: ${characterConfig.name}`,
-      `나이: ${characterConfig.age}`,
-      `성별/젠더: ${characterConfig.gender}`,
-      `종족: ${characterConfig.race}`,
-      `직업/역할: ${characterConfig.role}`,
-      `성격: ${(characterConfig.personality || []).join(', ')}`,
+    const lines = [
+      characterConfig.name ? `이름: ${characterConfig.name}` : '',
+      characterConfig.age !== null ? `나이: ${characterConfig.age}` : '',
+      characterConfig.gender ? `성별/젠더: ${characterConfig.gender}` : '',
+      characterConfig.race ? `종족: ${characterConfig.race}` : '',
+      characterConfig.role ? `직업/역할: ${characterConfig.role}` : '',
+      (characterConfig.personality || []).length
+        ? `성격: ${(characterConfig.personality || []).join(', ')}`
+        : '',
       `외형: ${characterConfig.appearance.hairColor} 머리 / ${characterConfig.appearance.hairStyle}, 눈 ${characterConfig.appearance.eyeColor}, 체형 ${characterConfig.appearance.bodyType}, 키 ${characterConfig.appearance.height}`,
       `의상: ${characterConfig.outfit}`,
       `소품/액세서리: ${characterConfig.accessories}`,
-      `배경: ${characterConfig.background}`,
+      characterConfig.background ? `배경: ${characterConfig.background}` : '',
       `색상 팔레트: ${(characterConfig.colorPalette || []).join(', ')}`,
-    ].join('\n')
+    ]
+    return lines.filter(Boolean).join('\n')
   }, [characterConfig])
 
   const pushHistory = (nextConfig: CharacterConfig, nextImageUrl?: string) => {
@@ -124,6 +128,7 @@ function App() {
         genre,
         currentConfig: characterConfig,
         lockedFields: locks,
+        includeProfileInfo,
       })
       setCharacterConfig(response.characterConfig)
       setImageUrl('')
@@ -148,6 +153,7 @@ function App() {
         text: inputText,
         genre,
         imageFile: uploadFile,
+        includeProfileInfo,
       })
       setCharacterConfig(response.characterConfig)
       setImageUrl('')
@@ -281,6 +287,15 @@ function App() {
               </select>
             </label>
           </div>
+          <label className="mt-3 flex items-center gap-2 text-sm text-[#656D76] dark:text-[#8B949E]">
+            <input
+              type="checkbox"
+              checked={includeProfileInfo}
+              onChange={(e) => setIncludeProfileInfo(e.target.checked)}
+              className="h-4 w-4 rounded border-[#D0D7DE] text-[#0969DA] focus:ring-[#0969DA]"
+            />
+            신체적 특징 외 정보(이름/나이/직업/배경 등)도 생성하기
+          </label>
         </section>
 
         {activeTab === 'random' && (
