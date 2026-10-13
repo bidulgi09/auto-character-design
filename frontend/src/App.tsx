@@ -76,6 +76,14 @@ function App() {
     setConfigEditor(JSON.stringify(characterConfig, null, 2))
   }, [characterConfig])
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
   const configText = useMemo(() => {
     if (!characterConfig) return ''
     const lines = [
@@ -125,6 +133,9 @@ function App() {
       return
     }
     setError('')
+    if (previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl)
+    }
     setUploadFile(file)
     setPreviewUrl(file ? URL.createObjectURL(file) : '')
   }
@@ -227,6 +238,7 @@ function App() {
       if (!parsed?.appearance || !Array.isArray(parsed?.colorPalette)) {
         throw new Error('invalid character config')
       }
+
       // 한국어 주석: 사용자가 수정한 설정을 즉시 반영해 다시 이미지를 생성할 수 있게 한다.
       setCharacterConfig(parsed)
       setError('')
@@ -234,6 +246,8 @@ function App() {
       setError('설정 JSON 형식이 올바르지 않습니다.')
     }
   }
+
+  const safePreviewUrl = previewUrl.startsWith('blob:') ? previewUrl : ''
 
   return (
     <div className="min-h-screen bg-white text-[#1F2328] dark:bg-[#0D1117] dark:text-[#F0F6FC]">
@@ -389,9 +403,9 @@ function App() {
                 className="mt-2 block w-full text-xs"
                 onChange={(e) => onSelectFile(e.target.files?.[0] ?? null)}
               />
-              {previewUrl && (
+              {safePreviewUrl && (
                 <img
-                  src={previewUrl}
+                  src={safePreviewUrl}
                   alt="업로드 미리보기"
                   className="mx-auto mt-3 max-h-40 rounded-md border border-[#D0D7DE] object-cover dark:border-[#30363D]"
                 />

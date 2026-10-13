@@ -1,14 +1,16 @@
+const crypto = require('crypto');
+
 function pick(list) {
-  return list[Math.floor(Math.random() * list.length)];
+  return list[crypto.randomInt(0, list.length)];
 }
 
 function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return crypto.randomInt(min, max + 1);
 }
 
 function randomHexColor() {
-  return `#${Math.floor(Math.random() * 0xffffff)
-    .toString(16)
+  return `#${crypto.randomBytes(3)
+    .toString('hex')
     .padStart(6, '0')
     .toUpperCase()}`;
 }
