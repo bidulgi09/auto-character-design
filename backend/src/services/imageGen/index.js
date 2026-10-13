@@ -2,7 +2,9 @@ const { generateImage } = require('./pollinationsImageGen');
 
 async function generateCharacterImage({ characterConfig, stylePrompt }) {
   const prompt = [
-    'Create a full-body character illustration.',
+    'Create a single-page character design sheet.',
+    'The sheet must clearly include: 1) full-body front view, 2) hidden/not-visible parts details (back/inner details callout), 3) main signature item close-up, 4) representative color swatches used in the design.',
+    'Use a clean layout with labeled sections so an artist can reference all details at once.',
     `Style: ${stylePrompt}`,
     `Name: ${characterConfig.name}`,
     `Role: ${characterConfig.role}`,

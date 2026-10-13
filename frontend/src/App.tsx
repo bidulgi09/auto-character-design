@@ -407,7 +407,7 @@ function App() {
                         setActiveTab('random')
                       }}
                     >
-                      {item.characterConfig.name} · {new Date(item.createdAt).toLocaleString()}
+                      {item.characterConfig.name || '이름 미생성'} · {new Date(item.createdAt).toLocaleString()}
                     </button>
                     <button
                       type="button"

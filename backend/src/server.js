@@ -22,8 +22,10 @@ app.get('/api/health', (_, res) => {
 
 app.post('/api/character/random', (req, res, next) => {
   try {
-    const { genre, currentConfig, lockedFields } = req.body || {};
-    const generated = buildRandomConfig(genre);
+    const { genre, currentConfig, lockedFields, includeProfileInfo } = req.body || {};
+    const generated = buildRandomConfig(genre, {
+      includeProfileInfo: includeProfileInfo !== false,
+    });
     const merged = mergeWithLocks(generated, currentConfig, lockedFields);
     res.json({ characterConfig: merged });
   } catch (error) {
@@ -42,6 +44,7 @@ app.post('/api/character/from-input', upload.single('image'), async (req, res, n
       text: req.body?.text,
       genre: req.body?.genre,
       imageBase64,
+      includeProfileInfo: req.body?.includeProfileInfo !== 'false',
     });
 
     res.json({ characterConfig });
