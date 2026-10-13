@@ -9,7 +9,6 @@ const {
   ACCESSORIES,
 } = require('../constants');
 const { pick, randomInt, randomHexColor, withFallback } = require('../utils');
-const { getOpenAIClient } = require('./openaiClient');
 
 function buildRandomConfig(genreInput) {
   const genre = genreInput === '랜덤' || !genreInput ? pick(GENRES) : genreInput;
@@ -67,9 +66,50 @@ function normalizeConfig(data, fallbackGenre = '랜덤') {
   };
 }
 
+function extractJson(text) {
+  const fenced = text.match(/```json\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) return fenced[1];
+
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
+  if (first >= 0 && last > first) {
+    return text.slice(first, last + 1);
+  }
+
+  return '{}';
+}
+
 async function generateFromInput({ text, imageBase64, genre }) {
-  const client = getOpenAIClient();
-  if (!client) {
+  const prompt = [
+    '아래 입력을 기반으로 캐릭터 설정 JSON을 생성해줘.',
+    '반드시 JSON만 반환하고, 키는 name,age,gender,race,role,personality(3개 배열),appearance(hairColor,hairStyle,eyeColor,bodyType,height),outfit,accessories,background,colorPalette(HEX 5개),genre 를 사용해.',
+    `장르: ${genre || '랜덤'}`,
+    `텍스트 입력: ${text || '없음'}`,
+    imageBase64
+      ? '이미지 입력: 참고 이미지가 제공되었으니 분위기, 색감, 의상 단서를 반영해.'
+      : '이미지 입력: 없음',
+  ].join('\n');
+
+  try {
+    const response = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.POLLINATIONS_TEXT_MODEL || 'openai',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.8,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('pollinations text api failed');
+    }
+
+    const payload = await response.json();
+    const rawText = payload?.choices?.[0]?.message?.content || '{}';
+    const parsed = JSON.parse(extractJson(rawText));
+    return normalizeConfig(parsed, genre);
+  } catch (error) {
     const draft = buildRandomConfig(genre);
     return {
       ...draft,
@@ -78,38 +118,6 @@ async function generateFromInput({ text, imageBase64, genre }) {
         : `${draft.background} 참고 이미지를 반영한 색감 중심 캐릭터 설정.`,
     };
   }
-
-  const messages = [
-    {
-      role: 'system',
-      content:
-        '캐릭터 디자이너처럼 동작하고 반드시 JSON만 반환해. 키는 name,age,gender,race,role,personality(3개 배열),appearance(hairColor,hairStyle,eyeColor,bodyType,height),outfit,accessories,background,colorPalette(HEX 5개),genre',
-    },
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: `장르: ${genre || '랜덤'}\n입력 텍스트: ${text || '없음'}` },
-        ...(imageBase64
-          ? [
-              {
-                type: 'image_url',
-                image_url: { url: imageBase64 },
-              },
-            ]
-          : []),
-      ],
-    },
-  ];
-
-  const response = await client.chat.completions.create({
-    model: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini',
-    temperature: 0.9,
-    messages,
-    response_format: { type: 'json_object' },
-  });
-
-  const parsed = JSON.parse(response.choices?.[0]?.message?.content || '{}');
-  return normalizeConfig(parsed, genre);
 }
 
 module.exports = {

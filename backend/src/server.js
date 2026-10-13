@@ -61,11 +61,6 @@ app.post('/api/image/generate', async (req, res, next) => {
     const stylePrompt = IMAGE_STYLES[style] || IMAGE_STYLES['애니풍'];
     const result = await generateCharacterImage({ characterConfig, stylePrompt });
 
-    if (result.b64Json) {
-      res.json({ imageUrl: `data:image/png;base64,${result.b64Json}` });
-      return;
-    }
-
     res.json({ imageUrl: result.imageUrl });
   } catch (error) {
     next(error);

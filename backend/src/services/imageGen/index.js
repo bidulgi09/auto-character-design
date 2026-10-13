@@ -1,4 +1,4 @@
-const { generateImage } = require('./openaiImageGen');
+const { generateImage } = require('./pollinationsImageGen');
 
 async function generateCharacterImage({ characterConfig, stylePrompt }) {
   const prompt = [
