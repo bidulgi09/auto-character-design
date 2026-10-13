@@ -3,6 +3,7 @@ import {
   Copy,
   Download,
   FileJson,
+  ImageIcon,
   ImageUp,
   Lock,
   Moon,
@@ -27,6 +28,13 @@ const emptyLocks = LOCKABLE_FIELDS.reduce(
   (acc, item) => ({ ...acc, [item.key]: false }),
   {} as Record<string, boolean>,
 )
+
+// 공통 스타일 (실제 스타일은 index.css의 .neu-*, .glass 클래스에 정의)
+const btnPrimary = 'neu-btn neu-btn-primary'
+const btnSecondary = 'neu-btn'
+const inputCls = 'neu-input mt-1 w-full px-3 py-2 text-sm'
+const cardCls = 'glass'
+const mutedCls = 'text-[#656D76] dark:text-[#8B949E]'
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('random')
@@ -103,6 +111,37 @@ function App() {
     ]
     return lines.filter(Boolean).join('\n')
   }, [characterConfig])
+
+  // 설정 카드 표시용 (라벨/값 목록)
+  const configRows = useMemo<[string, string][]>(() => {
+    if (!characterConfig) return []
+    const c = characterConfig
+    const rows: [string, string][] = [
+      ['이름', String(c.name ?? '')],
+      ['나이', c.age !== null && c.age !== undefined ? String(c.age) : ''],
+      ['성별/젠더', String(c.gender ?? '')],
+      ['종족', String(c.race ?? '')],
+      ['직업/역할', String(c.role ?? '')],
+      ['성격', (c.personality || []).join(', ')],
+      [
+        '외형',
+        `${c.appearance.hairColor} 머리 / ${c.appearance.hairStyle}, 눈 ${c.appearance.eyeColor}, 체형 ${c.appearance.bodyType}, 키 ${c.appearance.height}`,
+      ],
+      ['의상', String(c.outfit ?? '')],
+      ['소품/액세서리', String(c.accessories ?? '')],
+      ['배경', String(c.background ?? '')],
+    ]
+    return rows.filter(([, value]) => value)
+  }, [characterConfig])
+
+  const lockedCount = Object.values(locks).filter(Boolean).length
+
+  const tabs: [Tab, string][] = [
+    ['random', '랜덤'],
+    ['input', '입력 기반'],
+    ['history', `기록${history.length ? ` (${history.length})` : ''}`],
+  ]
+  const tabIndex = tabs.findIndex(([key]) => key === activeTab)
 
   const pushHistory = (nextConfig: CharacterConfig, nextImageUrl?: string) => {
     // 한국어 주석: 최신 결과를 항상 목록 맨 위에 저장한다.
@@ -250,194 +289,216 @@ function App() {
   const safePreviewUrl = previewUrl.startsWith('blob:') ? previewUrl : ''
 
   return (
-    <div className="min-h-screen bg-white text-[#1F2328] dark:bg-[#0D1117] dark:text-[#F0F6FC]">
-      <header className="border-b border-[#D0D7DE] dark:border-[#30363D]">
+    <div className="relative min-h-screen text-[#1F2328] dark:text-[#F0F6FC]">
+      {/* 배경: 천천히 떠다니는 색 덩어리 (유리 효과가 보이게 해줌) */}
+      <div className="bg-blobs" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+
+      {/* 헤더 */}
+      <header className="glass-header sticky top-0 z-20">
         <div className="mx-auto flex max-w-[960px] items-center justify-between px-4 py-3">
-          <h1 className="text-base font-semibold">Character Design Generator</h1>
+          <h1 className="flex items-center gap-2 text-base font-semibold">
+            <Sparkles size={18} className="anim-twinkle text-[#0969DA] dark:text-[#58A6FF]" />
+            Character Design Generator
+          </h1>
           <button
             type="button"
             onClick={() => setIsDark((prev) => !prev)}
-            className="rounded-md border border-[#D0D7DE] bg-[#F6F8FA] p-2 dark:border-[#30363D] dark:bg-[#161B22]"
+            className="neu-btn !p-2"
             aria-label="다크 모드 토글"
           >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            <span key={String(isDark)} className="anim-spin-in inline-flex">
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            </span>
           </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[960px] px-4 py-6">
-        <div className="mb-5 flex gap-2">
-          {([
-            ['random', '랜덤'],
-            ['input', '입력 기반'],
-            ['history', '기록'],
-          ] as [Tab, string][]).map(([key, label]) => (
+      <main className="relative z-10 mx-auto max-w-[960px] px-4 py-6">
+        {/* 탭 (슬라이딩 인디케이터) */}
+        <nav className="seg mb-6" role="tablist">
+          <span className="seg-indicator" style={{ transform: `translateX(${tabIndex * 100}%)` }} />
+          {tabs.map(([key, label]) => (
             <button
               key={key}
               type="button"
+              role="tab"
+              aria-selected={activeTab === key}
               onClick={() => setActiveTab(key)}
-              className={`rounded-md border px-3 py-1.5 text-sm ${
-                activeTab === key
-                  ? 'border-[#0969DA] bg-[#0969DA] text-white'
-                  : 'border-[#D0D7DE] bg-[#F6F8FA] dark:border-[#30363D] dark:bg-[#161B22]'
+              className={`seg-tab ${
+                activeTab === key ? 'font-semibold text-[#0969DA] dark:text-[#58A6FF]' : mutedCls
               }`}
             >
               {label}
             </button>
           ))}
-        </div>
+        </nav>
 
         {error && (
-          <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/50 dark:bg-red-950/30 dark:text-red-200">
+          <div className="anim-in mb-4 rounded-xl border border-red-300/70 bg-red-50/80 px-3 py-2 text-sm text-red-700 backdrop-blur dark:border-red-500/40 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </div>
         )}
 
-        <section className="mb-4 rounded-md border border-[#D0D7DE] bg-[#F6F8FA] p-4 dark:border-[#30363D] dark:bg-[#161B22]">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm">
-              장르
-              <select
-                value={genre}
-                onChange={(e) => setGenre(e.target.value as Genre)}
-                className="mt-1 w-full rounded-md border border-[#D0D7DE] bg-white px-3 py-2 focus:border-[#0969DA] focus:outline-none focus:ring-2 focus:ring-[#0969DA]/30 dark:border-[#30363D] dark:bg-[#0D1117]"
-              >
-                {GENRE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
+        {/* 컨트롤 카드 (랜덤 / 입력 기반 공통) */}
+        {activeTab !== 'history' && (
+          <section key={activeTab} className="glass anim-in mb-6 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium">
+                장르
+                <select value={genre} onChange={(e) => setGenre(e.target.value as Genre)} className={inputCls}>
+                  {GENRE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="text-sm">
-              이미지 스타일
-              <select
-                value={style}
-                onChange={(e) => setStyle(e.target.value as ImageStyle)}
-                className="mt-1 w-full rounded-md border border-[#D0D7DE] bg-white px-3 py-2 focus:border-[#0969DA] focus:outline-none focus:ring-2 focus:ring-[#0969DA]/30 dark:border-[#30363D] dark:bg-[#0D1117]"
-              >
-                {IMAGE_STYLE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <label className="mt-3 flex items-center gap-2 text-sm text-[#656D76] dark:text-[#8B949E]">
-            <input
-              type="checkbox"
-              checked={includeProfileInfo}
-              onChange={(e) => setIncludeProfileInfo(e.target.checked)}
-              className="h-4 w-4 rounded border-[#D0D7DE] text-[#0969DA] focus:ring-[#0969DA]"
-            />
-            신체적 특징 외 정보(이름/나이/직업/배경 등)도 생성하기
-          </label>
-        </section>
-
-        {activeTab === 'random' && (
-          <section className="mb-4 rounded-md border border-[#D0D7DE] p-4 dark:border-[#30363D]">
-            <div className="mb-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleRandomGenerate}
-                disabled={isConfigLoading}
-                className="inline-flex items-center gap-2 rounded-md border border-[#0969DA] bg-[#0969DA] px-3 py-2 text-sm text-white disabled:opacity-60"
-              >
-                <Sparkles size={16} />
-                {isConfigLoading ? '생성 중...' : '랜덤 생성'}
-              </button>
-              <button
-                type="button"
-                onClick={handleRandomGenerate}
-                disabled={isConfigLoading || !characterConfig}
-                className="inline-flex items-center gap-2 rounded-md border border-[#D0D7DE] bg-[#F6F8FA] px-3 py-2 text-sm dark:border-[#30363D] dark:bg-[#161B22]"
-              >
-                <RefreshCcw size={16} />잠금 제외 재생성
-              </button>
+              <label className="text-sm font-medium">
+                이미지 스타일
+                <select value={style} onChange={(e) => setStyle(e.target.value as ImageStyle)} className={inputCls}>
+                  {IMAGE_STYLE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
-            <p className="mb-2 text-sm text-[#656D76]">항목 잠금 토글</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {LOCKABLE_FIELDS.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => toggleLock(item.key)}
-                  className="flex items-center justify-between rounded-md border border-[#D0D7DE] px-3 py-2 text-sm dark:border-[#30363D]"
-                >
-                  {item.label}
-                  {locks[item.key] ? <Lock size={15} /> : <Unlock size={15} />}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {activeTab === 'input' && (
-          <section className="mb-4 rounded-md border border-[#D0D7DE] p-4 dark:border-[#30363D]">
-            <label className="text-sm">
-              키워드/문장 입력
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className="mt-1 min-h-[110px] w-full rounded-md border border-[#D0D7DE] bg-white px-3 py-2 focus:border-[#0969DA] focus:outline-none focus:ring-2 focus:ring-[#0969DA]/30 dark:border-[#30363D] dark:bg-[#0D1117]"
-                placeholder="예: 비 오는 날 우산을 든 쓸쓸한 마법사"
-              />
-            </label>
-
-            <div
-              className="mt-3 rounded-md border border-dashed border-[#D0D7DE] p-4 text-center text-sm dark:border-[#30363D]"
-              onDrop={(e) => {
-                e.preventDefault()
-                onSelectFile(e.dataTransfer.files[0] ?? null)
-              }}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              <Upload className="mx-auto mb-2" size={18} />
-              드래그 앤 드롭 또는 파일 선택 (jpg/png/webp, 최대 5MB)
+            <label className={`mt-4 flex items-center gap-2 text-xs ${mutedCls}`}>
               <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="mt-2 block w-full text-xs"
-                onChange={(e) => onSelectFile(e.target.files?.[0] ?? null)}
+                type="checkbox"
+                checked={includeProfileInfo}
+                onChange={(e) => setIncludeProfileInfo(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-[#D0D7DE] text-[#0969DA] focus:ring-[#0969DA]"
               />
-              {safePreviewUrl && (
-                <img
-                  src={safePreviewUrl}
-                  alt="업로드 미리보기"
-                  className="mx-auto mt-3 max-h-40 rounded-md border border-[#D0D7DE] object-cover dark:border-[#30363D]"
-                />
-              )}
-            </div>
+              신체적 특징 외 정보(이름/나이/직업/배경 등)도 생성하기
+            </label>
 
-            <button
-              type="button"
-              onClick={handleInputGenerate}
-              disabled={isConfigLoading}
-              className="mt-3 inline-flex items-center gap-2 rounded-md border border-[#0969DA] bg-[#0969DA] px-3 py-2 text-sm text-white disabled:opacity-60"
-            >
-              <ImageUp size={16} />
-              {isConfigLoading ? '생성 중...' : '입력 기반 생성'}
-            </button>
+            <div className="my-5 h-px bg-gradient-to-r from-transparent via-slate-400/40 to-transparent" />
+
+            {activeTab === 'random' && (
+              <>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRandomGenerate}
+                    disabled={isConfigLoading}
+                    className={btnPrimary}
+                  >
+                    <Sparkles size={15} />
+                    {isConfigLoading ? '생성 중...' : '랜덤 생성'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRandomGenerate}
+                    disabled={isConfigLoading || !characterConfig}
+                    className={btnSecondary}
+                  >
+                    <RefreshCcw size={15} className={isConfigLoading ? 'animate-spin' : ''} />
+                    잠금 제외 재생성
+                  </button>
+                  {lockedCount > 0 && (
+                    <span className={`text-xs ${mutedCls}`}>{lockedCount}개 항목 고정됨</span>
+                  )}
+                </div>
+
+                <details className="group mt-5">
+                  <summary className={`cursor-pointer select-none text-sm ${mutedCls}`}>
+                    항목 잠금 {lockedCount > 0 ? `(${lockedCount})` : ''}
+                  </summary>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {LOCKABLE_FIELDS.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => toggleLock(item.key)}
+                        aria-pressed={locks[item.key]}
+                        className="neu-chip"
+                      >
+                        {locks[item.key] ? <Lock size={12} /> : <Unlock size={12} />}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+              </>
+            )}
+
+            {activeTab === 'input' && (
+              <>
+                <label className="text-sm font-medium">
+                  키워드/문장 입력
+                  <textarea
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    className={`${inputCls} min-h-[96px] resize-y`}
+                    placeholder="예: 비 오는 날 우산을 든 쓸쓸한 마법사"
+                  />
+                </label>
+
+                <label
+                  className={`neu-well mt-4 flex cursor-pointer flex-col items-center gap-1 p-5 text-center text-sm transition-transform hover:-translate-y-0.5 ${mutedCls}`}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    onSelectFile(e.dataTransfer.files[0] ?? null)
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                >
+                  <Upload size={18} />
+                  <span>드래그 앤 드롭 또는 클릭해서 파일 선택</span>
+                  <span className="text-xs">jpg/png/webp, 최대 5MB</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(e) => onSelectFile(e.target.files?.[0] ?? null)}
+                  />
+                  {safePreviewUrl && (
+                    <img
+                      key={safePreviewUrl}
+                      src={safePreviewUrl}
+                      alt="업로드 미리보기"
+                      className="anim-pop mt-3 max-h-40 rounded-xl object-cover shadow-md"
+                    />
+                  )}
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleInputGenerate}
+                  disabled={isConfigLoading}
+                  className={`${btnPrimary} mt-4`}
+                >
+                  <ImageUp size={15} />
+                  {isConfigLoading ? '생성 중...' : '입력 기반 생성'}
+                </button>
+              </>
+            )}
           </section>
         )}
 
+        {/* 기록 */}
         {activeTab === 'history' && (
-          <section className="mb-4 rounded-md border border-[#D0D7DE] p-4 dark:border-[#30363D]">
+          <section className={`${cardCls} anim-in mb-6 p-5`}>
             {history.length === 0 ? (
-              <p className="text-sm text-[#656D76]">저장된 기록이 없습니다.</p>
+              <p className={`text-sm ${mutedCls}`}>저장된 기록이 없습니다.</p>
             ) : (
-              <ul className="space-y-2">
-                {history.map((item) => (
+              <ul className="divide-y divide-slate-400/25">
+                {history.map((item, i) => (
                   <li
                     key={item.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#D0D7DE] px-3 py-2 text-sm dark:border-[#30363D]"
+                    className="anim-in flex items-center justify-between gap-2 py-2.5 text-sm first:pt-0 last:pb-0"
+                    style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
                   >
                     <button
                       type="button"
-                      className="text-left"
+                      className="min-w-0 flex-1 truncate text-left transition-colors hover:text-[#0969DA] dark:hover:text-[#58A6FF]"
                       onClick={() => {
                         setCharacterConfig(item.characterConfig)
                         setImageUrl(item.imageUrl || '')
@@ -445,12 +506,13 @@ function App() {
                         setActiveTab('random')
                       }}
                     >
-                      {item.characterConfig.name || '이름 미생성'} · {new Date(item.createdAt).toLocaleString()}
+                      {item.characterConfig.name || '이름 미생성'}
+                      <span className={`ml-2 text-xs ${mutedCls}`}>{new Date(item.createdAt).toLocaleString()}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setHistory((prev) => prev.filter((v) => v.id !== item.id))}
-                      className="rounded-md border border-[#D0D7DE] p-1.5 dark:border-[#30363D]"
+                      className="neu-btn !p-1.5"
                       aria-label="기록 삭제"
                     >
                       <Trash2 size={14} />
@@ -462,90 +524,118 @@ function App() {
           </section>
         )}
 
-        <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-          <article className="rounded-md border border-[#D0D7DE] p-4 dark:border-[#30363D]">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">캐릭터 이미지</h2>
+        {/* 결과 영역 */}
+        <section className="grid gap-5 lg:grid-cols-2">
+          {/* 이미지 */}
+          <article className={`${cardCls} anim-in p-5`}>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">캐릭터 이미지</h2>
               <button
                 type="button"
                 onClick={handleGenerateImage}
                 disabled={isImageLoading || !characterConfig}
-                className="inline-flex items-center gap-2 rounded-md border border-[#0969DA] bg-[#0969DA] px-3 py-1.5 text-sm text-white disabled:opacity-60"
+                className={btnPrimary}
               >
-                <RefreshCcw size={15} />
-                {isImageLoading ? '생성 중...' : '이미지 다시 생성'}
+                <RefreshCcw size={14} className={isImageLoading ? 'animate-spin' : ''} />
+                {isImageLoading ? '생성 중...' : imageUrl ? '이미지 다시 생성' : '이미지 생성'}
               </button>
             </div>
 
             {imageUrl ? (
-              <img src={imageUrl} alt="생성된 캐릭터 이미지" className="w-full rounded-md border border-[#D0D7DE] dark:border-[#30363D]" />
+              <img
+                key={imageUrl}
+                src={imageUrl}
+                alt="생성된 캐릭터 이미지"
+                className="anim-pop w-full rounded-2xl shadow-lg"
+              />
             ) : (
-              <div className="flex h-[340px] items-center justify-center rounded-md border border-dashed border-[#D0D7DE] text-sm text-[#656D76] dark:border-[#30363D]">
-                {isImageLoading ? '이미지 생성 중입니다...' : '이미지를 아직 생성하지 않았습니다.'}
+              <div
+                className={`neu-well flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 px-6 text-center text-sm ${mutedCls} ${
+                  isImageLoading ? 'shimmer' : ''
+                }`}
+              >
+                <ImageIcon size={28} className={isImageLoading ? 'animate-pulse' : ''} />
+                {isImageLoading
+                  ? '이미지 생성 중입니다...'
+                  : characterConfig
+                    ? '"이미지 생성"을 눌러 그림을 만들어보세요.'
+                    : '먼저 캐릭터 설정을 생성해주세요.'}
               </div>
             )}
 
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={downloadImage}
-                disabled={!imageUrl}
-                className="inline-flex items-center gap-1 rounded-md border border-[#D0D7DE] bg-[#F6F8FA] px-3 py-1.5 text-sm disabled:opacity-50 dark:border-[#30363D] dark:bg-[#161B22]"
-              >
-                <Download size={15} /> 이미지 다운로드
+            <div className="mt-4">
+              <button type="button" onClick={downloadImage} disabled={!imageUrl} className={btnSecondary}>
+                <Download size={14} /> 이미지 다운로드
               </button>
             </div>
           </article>
 
-          <article className="rounded-md border border-[#D0D7DE] p-4 dark:border-[#30363D]">
-            <h2 className="mb-3 text-sm font-semibold">설정 카드</h2>
-            {characterConfig ? (
-              <>
-                <pre className="max-h-[380px] overflow-auto whitespace-pre-wrap rounded-md bg-[#F6F8FA] p-3 text-sm leading-6 dark:bg-[#161B22]">
-                  {configText}
-                </pre>
-                <label className="mt-3 block text-sm">
-                  설정 JSON 수정
-                  <textarea
-                    value={configEditor}
-                    onChange={(e) => setConfigEditor(e.target.value)}
-                    className="mt-1 min-h-[180px] w-full rounded-md border border-[#D0D7DE] bg-white px-3 py-2 font-mono text-xs focus:border-[#0969DA] focus:outline-none focus:ring-2 focus:ring-[#0969DA]/30 dark:border-[#30363D] dark:bg-[#0D1117]"
-                  />
-                </label>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={copyConfig}
-                    className="inline-flex items-center gap-1 rounded-md border border-[#D0D7DE] px-3 py-1.5 text-sm dark:border-[#30363D]"
-                  >
-                    <Copy size={15} /> 복사
+          {/* 설정 카드 */}
+          <article className={`${cardCls} anim-in p-5`} style={{ animationDelay: '80ms' }}>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">설정 카드</h2>
+              {characterConfig && (
+                <div className="flex gap-3">
+                  <button type="button" onClick={copyConfig} className={btnSecondary}>
+                    <Copy size={14} /> 복사
                   </button>
-                  <button
-                    type="button"
-                    onClick={exportJson}
-                    className="inline-flex items-center gap-1 rounded-md border border-[#D0D7DE] px-3 py-1.5 text-sm dark:border-[#30363D]"
-                  >
-                    <FileJson size={15} /> JSON 내보내기
-                  </button>
-                  <button
-                    type="button"
-                    onClick={applyConfigEdit}
-                    className="inline-flex items-center gap-1 rounded-md border border-[#0969DA] bg-[#0969DA] px-3 py-1.5 text-sm text-white"
-                  >
-                    <RefreshCcw size={15} /> 설정 반영
+                  <button type="button" onClick={exportJson} className={btnSecondary}>
+                    <FileJson size={14} /> JSON
                   </button>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(characterConfig.colorPalette || []).map((hex) => (
-                    <div key={hex} className="rounded border border-[#D0D7DE] px-2 py-1 text-xs font-mono dark:border-[#30363D]">
-                      <span className="mr-1 inline-block h-3 w-3 rounded-full align-middle" style={{ backgroundColor: hex }} />
+              )}
+            </div>
+
+            {characterConfig ? (
+              <>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {(characterConfig.colorPalette || []).map((hex, i) => (
+                    <div
+                      key={`${hex}-${i}`}
+                      className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-white/50 px-2.5 py-1 font-mono text-xs shadow-sm ring-1 ring-white/60 dark:bg-white/5 dark:ring-white/10"
+                      style={{ animationDelay: `${i * 60}ms` }}
+                    >
+                      <span
+                        className="inline-block h-3 w-3 rounded-full border border-black/10"
+                        style={{ backgroundColor: hex }}
+                      />
                       {hex}
                     </div>
                   ))}
                 </div>
+
+                <dl key={configText} className="divide-y divide-slate-400/25 text-sm">
+                  {configRows.map(([label, value], i) => (
+                    <div
+                      key={label}
+                      className="anim-in grid grid-cols-[88px_1fr] gap-3 py-2"
+                      style={{ animationDelay: `${i * 45}ms` }}
+                    >
+                      <dt className={mutedCls}>{label}</dt>
+                      <dd className="break-words">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <details className="mt-4">
+                  <summary className={`cursor-pointer select-none text-sm ${mutedCls}`}>설정 JSON 직접 수정</summary>
+                  <textarea
+                    value={configEditor}
+                    onChange={(e) => setConfigEditor(e.target.value)}
+                    className={`${inputCls} min-h-[200px] font-mono text-xs`}
+                  />
+                  <button type="button" onClick={applyConfigEdit} className={`${btnPrimary} mt-3`}>
+                    <RefreshCcw size={14} /> 설정 반영
+                  </button>
+                </details>
               </>
             ) : (
-              <p className="text-sm text-[#656D76]">캐릭터 설정을 먼저 생성해주세요.</p>
+              <div
+                className={`flex min-h-[200px] flex-col items-center justify-center gap-2 text-center text-sm ${mutedCls}`}
+              >
+                <Sparkles size={24} className="anim-twinkle" />
+                캐릭터 설정을 먼저 생성해주세요.
+              </div>
             )}
           </article>
         </section>

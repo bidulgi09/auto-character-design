@@ -1,11 +1,47 @@
+/* ===== 디자인 토큰 (GitHub 스타일) ===== */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f6f8fa;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --text-h: #1f2328;
+  --text-muted: #656d76;
+  --accent: #0969da;
+  --accent-bg: #ddf4ff;
+  --accent-border: #54aeff;
+  --social-bg: #f6f8fa;
+  --radius: 6px;
+  --shadow: 0 1px 0 rgba(31, 35, 40, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --bg-subtle: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-h: #f0f6fc;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-bg: #121d2f;
+    --accent-border: #388bfd;
+    --social-bg: #161b22;
+    --shadow: none;
+  }
+}
+
+/* ===== 버튼 (counter) ===== */
 .counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  padding: 5px 16px;
+  border-radius: var(--radius);
   color: var(--accent);
   background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
   margin-bottom: 24px;
 
   &:hover {
@@ -17,76 +53,77 @@
   }
 }
 
+/* ===== 히어로: 3D 변형 제거, 단순 중앙 정렬 ===== */
 .hero {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 
   .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
+    width: 120px;
   }
 
   .framework,
   .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
+    height: 24px;
     width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
   }
 }
 
+/* ===== 중앙 영역 ===== */
 #center {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 24px;
   place-content: center;
   place-items: center;
   flex-grow: 1;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 24px;
 
   @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
+    padding: 32px 16px 24px;
+    gap: 16px;
   }
 }
 
+/* ===== 다음 단계 섹션 ===== */
 #next-steps {
   display: flex;
   border-top: 1px solid var(--border);
   text-align: left;
+  background: var(--bg);
 
   & > div {
     flex: 1 1 0;
     padding: 32px;
+
     @media (max-width: 1024px) {
-      padding: 24px 20px;
+      padding: 24px 16px;
     }
   }
 
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-h);
+    margin: 0 0 4px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
   .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
+    margin-bottom: 12px;
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted);
   }
 
   @media (max-width: 1024px) {
@@ -104,41 +141,48 @@
   }
 }
 
+/* ===== 링크 버튼 목록 ===== */
 #next-steps ul {
   list-style: none;
   padding: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin: 32px 0 0;
+  margin: 24px 0 0;
 
   .logo {
-    height: 18px;
+    height: 16px;
   }
 
   a {
     color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius);
     background: var(--social-bg);
+    border: 1px solid var(--border);
     display: flex;
-    padding: 6px 12px;
+    padding: 5px 12px;
     align-items: center;
     gap: 8px;
     text-decoration: none;
-    transition: box-shadow 0.3s;
+    transition: border-color 0.15s, background-color 0.15s;
 
     &:hover {
-      box-shadow: var(--shadow);
+      border-color: var(--text-muted);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
     .button-icon {
-      height: 18px;
-      width: 18px;
+      height: 16px;
+      width: 16px;
     }
   }
 
   @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
+    margin-top: 16px;
     justify-content: center;
 
     li {
@@ -153,11 +197,13 @@
   }
 }
 
+/* ===== 구분선 ===== */
 #spacer {
-  height: 88px;
+  height: 64px;
   border-top: 1px solid var(--border);
+
   @media (max-width: 1024px) {
-    height: 48px;
+    height: 32px;
   }
 }
 
