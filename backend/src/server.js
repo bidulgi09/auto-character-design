@@ -15,7 +15,7 @@ const port = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
-
+console.log('[env] key loaded:', !!process.env.POLLINATIONS_API_KEY, '| cwd:', process.cwd());
 app.get('/api/health', (_, res) => {
   res.json({ ok: true });
 });

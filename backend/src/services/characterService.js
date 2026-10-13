@@ -102,36 +102,74 @@ async function generateFromInput({ text, imageBase64, genre, includeProfileInfo 
     `장르: ${genre || '랜덤'}`,
     `텍스트 입력: ${text || '없음'}`,
     imageBase64
-      ? '이미지 입력: 참고 이미지가 제공되었으니 분위기, 색감, 의상 단서를 반영해.'
+      ? '이미지 입력: 첨부된 참고 이미지를 직접 보고, 이미지에 보이는 머리색/머리 스타일/눈 색/체형/의상/소품/색감을 최대한 그대로 반영해. 이미지와 모순되는 설정은 만들지 마. colorPalette는 이미지의 주요 색상에서 뽑아줘.'
       : '이미지 입력: 없음',
   ].join('\n');
 
+  // 한국어 주석: 이미지가 있으면 멀티모달(text + image_url) 형식으로 보낸다.
+  const userContent = imageBase64
+    ? [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: imageBase64 } },
+      ]
+    : prompt;
+
   try {
-    const response = await fetch('https://text.pollinations.ai/openai', {
+    // 한국어 주석: 새 Pollinations 게이트웨이 사용. 키는 있으면 헤더에 붙인다.
+    const baseUrl = process.env.POLLINATIONS_BASE_URL || 'https://gen.pollinations.ai';
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.POLLINATIONS_API_KEY) {
+      headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
+    }
+    // 이미지가 있으면 비전 모델, 텍스트만이면 텍스트 모델
+    const model = imageBase64
+      ? process.env.POLLINATIONS_VISION_MODEL || 'gemini'
+      : process.env.POLLINATIONS_TEXT_MODEL || 'openai';
+
+    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
-        model: process.env.POLLINATIONS_TEXT_MODEL || 'openai',
-        messages: [{ role: 'user', content: prompt }],
+        model,
+        messages: [{ role: 'user', content: userContent }],
         temperature: 0.8,
       }),
     });
 
     if (!response.ok) {
-      throw new Error('pollinations text api failed');
+      const detail = await response.text().catch(() => '');
+      throw new Error(`pollinations ${response.status}: ${detail.slice(0, 600)}`);
     }
 
     const payload = await response.json();
-    const rawText = payload?.choices?.[0]?.message?.content || '{}';
+    const rawText = payload?.choices?.[0]?.message?.content || '';
     const parsed = JSON.parse(extractJson(rawText));
+
+    // 한국어 주석: 빈 응답이면 랜덤 값으로 조용히 채우지 않고 실패로 처리한다.
+    if (!parsed || typeof parsed !== 'object' || !parsed.appearance) {
+      throw new Error('model output missing appearance');
+    }
+
     return normalizeConfig(parsed, genre, { includeProfileInfo });
   } catch (error) {
+    console.error('[generateFromInput] failed:', error.message);
+
+    // 한국어 주석: 이미지 분석이 실패했는데 가짜 결과를 보여주면 안 되므로 에러로 알린다.
+    if (imageBase64) {
+      const err = new Error('image analysis failed');
+      err.userMessage =
+        '이미지 분석에 실패했습니다. 잠시 후 다시 시도하거나, 더 작은 이미지를 사용해보세요.';
+      err.status = 502;
+      throw err;
+    }
+
+    // 텍스트만 입력한 경우에는 기존처럼 간단한 대체 결과를 반환한다.
     const draft = buildRandomConfig(genre, { includeProfileInfo });
     return {
       ...draft,
       background: text
         ? `${text} 분위기를 바탕으로 사건 직전의 긴장감을 담은 캐릭터 설정.`
-        : `${draft.background} 참고 이미지를 반영한 색감 중심 캐릭터 설정.`,
+        : draft.background,
     };
   }
 }
